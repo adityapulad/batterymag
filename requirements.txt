@@ -1,0 +1,25 @@
+# Core Data Science Libraries
+numpy==2.3.5
+pandas==3.0.3
+scipy==1.17.1
+matplotlib==3.10.9
+seaborn==0.13.2
+
+# Machine Learning Libraries
+scikit-learn==1.8.0
+tensorflow==2.21.0
+keras==3.14.1
+xgboost==3.2.0
+
+# Jupyter Notebook
+jupyter==1.1.1
+notebook==7.5.6
+ipykernel==7.2.0
+ipywidgets==8.1.8
+
+# Visualization (newly added)
+plotly==6.7.0
+
+# Testing
+pytest==9.0.3
+hypothesis==6.152.7

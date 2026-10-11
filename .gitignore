@@ -1,0 +1,32 @@
+
+# GitHub-friendly repo
+# Exclude oversized archive files
+datasets/download/*.zip
+*.zip
+
+# Python & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+tensorflow-env/
+
+# Databases
+*.db
+*.sqlite3
+
+# Node & Frontend
+node_modules/
+dist/
+.cache/
+
+# IDE & OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
