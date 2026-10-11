@@ -1,322 +1,207 @@
-Topic- AI/ML-Based Battery Management System for Electric Vehicles
+# ⚡ AI/ML Battery Intelligence Platform
+### Physics-Informed State of Health (SoH), State of Charge (SoC), Remaining Useful Life (RUL), and Equivalent Circuit Parameter Estimation
 
-Overview
-
-The project presents a hybrid battery performance modeling framework that combines Artificial Intelligence (AI) techniques with Physics-Based Models for accurate battery analysis, prediction, and health monitoring.
-
-The system integrates:
-
-1. Artificial Intelligence & Machine Learning
-   - LSTM, CNN, Random Forest, Gradient Boosting
-   - Data-driven prediction and estimation
-2. Physics-Based Modeling
-   - Equivalent Circuit Models (ECM)
-   - Electrochemical parameter analysis
-   - Physically interpretable battery behavior
-3. Hybrid AI + Physics-Based Framework
-   - Combines deep learning with ECM features
-   - Improves prediction accuracy and reliability
-   - Enables interpretable battery diagnostics
----
-
-Key Features
-
-1. State of Health (SoH) Estimation
-- CNN/LSTM neural networks for data-driven health estimation
-- ECM parameter tracking for physics-based analysis
-- Real-time battery health monitoring (0-100%)
-
-2. Remaining Useful Life (RUL) Prediction
-- Ensemble ML models (Random Forest, XGBoost, Gradient Boosting)
-- Predicts remaining charge/discharge cycles before failure
-- Achieves R² ≈ 0.95-0.99 accuracy
-
-3. Fault Detection & Diagnostics
-- Abnormal ECM parameter change detection
-- Anomaly detection using ML models
-- Early warning system for battery failures
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.0+-61DAFB.svg?logo=react&logoColor=black)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.0+-646CFF.svg?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-FF6F00.svg?logo=tensorflow&logoColor=white)](https://tensorflow.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
-## Project Structure
+## 📌 Executive Summary
+
+**Battery Intelligence** is a production-grade, end-to-end Battery Management System (BMS) software platform. It bridges data-driven deep learning with physical electrochemistry by integrating **Equivalent Circuit Modeling (Thevenin ECM, Rint, 2RC PNGV)** alongside **LSTM Recurrent Neural Networks** and **XGBoost Regressors**.
+
+The platform is designed to overcome standard machine learning pitfalls in battery analytics—such as black-box overfitting, invalid extrapolations during telemetry dropouts, and optimistic train/test data leakage—by enforcing **battery-wise Leave-One-Battery-Out (LOBO) validation**, **physics surrogate fallbacks**, and **runtime input sanitization**.
+
+---
+
+## 🌟 Key Features
+
+| Capability | Engine / Architecture | Purpose & Physics Integration |
+| :--- | :--- | :--- |
+| **State of Health (SoH)** | Hybrid LSTM + R0 Overpotential Tracker | Estimates cell degradation ($0 - 100\%$) referenced strictly to measured initial capacity $C_0$. |
+| **State of Charge (SoC)** | Complementary Fusion: Coulomb Counting + XGBoost Observer | Combines high-frequency Coulomb integration with non-linear voltage observer to prevent integration drift. Supports bidirectional IEEE load sign conventions. |
+| **Remaining Useful Life (RUL)** | Temporal Sequence LSTM Network | Predicts remaining discharge cycles until reaching $80\%$ End-of-Life (EOL) with confidence intervals. Corrects polarization rate distortion using physical time increments ($\Delta t$). |
+| **Impedance Extraction (ECM)** | L-BFGS-B Optimization with Excitation Checks | Fits ohmic resistance ($R_0$), charge-transfer resistance ($R_1$), and polarization capacitance ($C_1$). Returns `R2 = null` on unexcited flatline rest. |
+| **Diagnostics & Fault Detection** | Multi-Parameter Anomaly Engine | Flags thermal runaway risk, internal short-circuiting ($R_0$ surge), severe capacity fade, and sensor outliers ($15\text{V}$, negative timestamps). |
+| **Auditing & Provenance** | SQLite Persistent Traceability | Stores exact raw neural predictions, physics fallback activation flags, fallback reasons, and model version hashes for regulatory compliance. |
+
+---
+
+## 🔬 Benchmark & Cross-Validation Results
+
+The platform was evaluated using a rigorous **Leave-One-Battery-Out (LOBO)** protocol across all **636 discharge cycles** of the NASA PCoE battery repository (`B0005`, `B0006`, `B0007`, `B0018`). Models and feature scalers were fitted exclusively on three cells and tested on the remaining unseen cell.
+
+### 1. Out-of-Sample SoH Generalization (LOBO)
+
+| Test Battery (Held-Out) | Train Batteries | Cycles Evaluated | Out-of-Sample MAE | Out-of-Sample RMSE | $R^2$ Score |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| **`B0005`** | `B0006`, `B0007`, `B0018` | 168 | **2.04%** | **2.42%** | **0.9441** |
+| **`B0006`** | `B0005`, `B0007`, `B0018` | 168 | **2.02%** | **2.52%** | **0.9582** |
+| **`B0007`** | `B0005`, `B0006`, `B0018` | 168 | **2.51%** | **2.82%** | **0.8895** |
+| **`B0018`** | `B0005`, `B0006`, `B0007` | 132 | **1.74%** | **2.57%** | **0.9042** |
+| **Macro Average** | — | **636 Total** | **2.08%** | **2.58%** | **0.9240** |
+
+*Detailed benchmark logs are exported to `backend/evaluation_results/leave_one_battery_out_results.csv`.*
+
+### 2. RUL Benchmark Comparison (Unseen `B0005`, 168 Cycles)
+
+| Model / Baseline | MAE (Cycles) | RMSE (Cycles) | Mean Bias (Cycles) |
+| :--- | :---: | :---: | :---: |
+| **LSTM RUL Network (This Project)** | **11.00** | **15.69** | **+4.41** |
+| **Baseline 1: Linear Capacity Fade Extrapolation** | 35.73 | 42.18 | -18.25 |
+| **Baseline 2: Mean Population Lifetime** | 28.99 | 36.42 | +12.60 |
+
+---
+
+## 🏗 System Architecture
 
 ```
-battery-management-system/
-├── datasets/                      # Battery datasets
-│   ├── battery_data/              # NASA .mat files (56 batteries)
-│   ├── archive/cleaned_dataset/   # NASA CSV format (7565 files)
-│   └── archive (1)/               # RUL dataset
-│
-├── soh/                           # State of Health (Deep Learning)
-│   ├── CNN.ipynb                  # CNN-based SoH estimation
-│   └── battery_loader.py          # Data loading utility
-│
-├── rul/                           # Remaining Useful Life (ML)
-│   └── battery_remaining_life_prediction.ipynb
-│
-├── ecm/                           # Equivalent Circuit Model (Physics)
-│   ├── ecm_model.py               # ECM implementations
-│   ├── ecm_parameter_extraction.py # Parameter extraction
-│   ├── ecm_notebook.ipynb         # Interactive tutorial
-│   └── README.md                  # ECM documentation
-│
-├── hybrid/                        # 🚀 Hybrid ECM + LSTM (Recommended)
-│   ├── hybrid_ecm_lstm.py         # Hybrid model implementation
-│   ├── hybrid_soc.py              # State of Charge estimation
-│   ├── hybrid_soh.py              # State of Health estimation
-│   ├── hybrid_notebook.ipynb      # Interactive tutorial
-│   └── README.md                  # Hybrid approach guide
-│
-├── soc/                           # State of Charge estimation
-├── training/                      # Model training utilities
-├── pics/                          # Visualizations and plots
-│
-├── battery_loader.py              # Main data loader
-├── convert_csv_to_mat.py          # CSV to MAT converter
-├── setup_datasets.py              # Dataset setup utility
-├── requirements.txt               # Python dependencies
-└── README.md                      # This file
+                                      ┌──────────────────────────────────────────────┐
+                                      │              React + Vite UI                 │
+                                      │  (Dynamic Telemetry, Diagnostics, KPI Cards) │
+                                      └──────────────────────┬───────────────────────┘
+                                                             │ HTTP / JSON REST
+                                                             ▼
+┌────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                       FastAPI Backend Engine                                       │
+│                                                                                                    │
+│  ┌───────────────────────┐   ┌───────────────────────┐   ┌──────────────────────────────────────┐  │
+│  │   Telemetry Guard     │   │   Inference Router    │   │         SQLite Audit Trail           │  │
+│  │  - NaN / Inf checks   │──▶│  - /soh/predict       │──▶│  - raw_prediction                   │  │
+│  │  - Time monotonicity  │   │  - /soc/predict       │   │  - prediction_source                 │  │
+│  │  - Chemistry range    │   │  - /rul/predict       │   │  - fallback_reason                   │  │
+│  └───────────────────────┘   └───────────┬───────────┘   └──────────────────────────────────────┘  │
+│                                          │                                                         │
+│                ┌─────────────────────────┴─────────────────────────┐                               │
+│                ▼                                                   ▼                               │
+│  ┌───────────────────────────┐                       ┌───────────────────────────┐                 │
+│  │   Trained Machine Models  │                       │   Physics Surrogate Layer │                 │
+│  │  - LSTM SoH Network       │   (On Anomaly /       │  - Ah Coulomb Counter     │                 │
+│  │  - Hybrid RUL Network     │─── Low Excitation) ──▶│  - Thevenin RC Estimator  │                 │
+│  │  - XGBoost SoC Observer   │                       │  - Resistance Degradation │                 │
+│  └───────────────────────────┘                       └───────────────────────────┘                 │
+└────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-Quick Start
+## 📂 Project Directory Structure
 
-- Python 3.8 or higher
-- Jupyter Notebook
-- Git (for cloning the repository)
+```
+Srishtish/
+├── backend/                           # FastAPI Application Core
+│   ├── app/
+│   │   ├── api/v1/endpoints/          # REST Endpoints: soh, soc, rul, ecm, fault, history
+│   │   ├── core/                      # ECM Fitting, Coulomb Counting, Fault Detector
+│   │   ├── db/                        # SQLite Database Models & Session Management
+│   │   ├── ml/                        # Model Registry, Preprocessing, Fallback Logic
+│   │   └── main.py                    # Application Entrypoint & CORS Configuration
+│   ├── models/                        # Serialized .keras Models & .joblib Scalers
+│   ├── evaluation_results/            # Cross-validation CSV Benchmark Metrics
+│   ├── scripts/                       # Training, Self-Testing, and LOBO Benchmark Scripts
+│   ├── tests/                         # Pytest Suite (Health, Inference, Provenance)
+│   └── requirements.txt               # Backend Python Dependencies
+│
+├── frontend/                          # React + Vite Dashboard
+│   ├── src/
+│   │   ├── components/                # KPICards, TelemetryChart, ECMParameters, FaultPanel
+│   │   ├── fixtures/                  # Real NASA Telemetry Profiles (Healthy, Moderate, Degraded)
+│   │   ├── App.jsx                    # State Management & Pipeline Integration
+│   │   └── api.js                     # API Client
+│   ├── package.json                   # Frontend Dependencies
+│   └── vite.config.js                 # Vite Dev Server & Proxy Config
+│
+├── datasets/                          # NASA PCoE Battery Telemetry (.mat and .csv files)
+├── hybrid/                            # Offline Research & Exploratory Jupyter Notebooks
+└── README.md                          # Platform Documentation
+```
 
-1. Clone the Repository
+---
+
+## 🚀 Quick Start Guide
+
+### Prerequisites
+* **Python 3.10+** (Recommended: virtual environment with TensorFlow and FastAPI)
+* **Node.js 18+** & **npm**
+
+### 1. Backend Setup
 
 ```bash
-git clone https://github.com/yourusername/battery-management-system.git
-cd battery-management-system
-```
+cd backend
 
-2. Install Dependencies
+# Create and activate a virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-```bash
+# Install dependencies
 pip install -r requirements.txt
+
+# Start the FastAPI backend server
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+* Interactive Swagger API Docs will be live at: **`http://localhost:8000/docs`**
 
-Key Libraries:
-- `numpy`, `pandas`, `scipy` - Data processing
-- `matplotlib`, `seaborn`, `plotly` - Visualization
-- `scikit-learn` - Machine learning
-- `tensorflow`, `keras` - Deep learning
-- `xgboost` - Gradient boosting
-- `jupyter` - Interactive notebooks
+### 2. Frontend Setup
 
-3. Run the Notebooks
+In a new terminal window:
 
 ```bash
-cd hybrid
-jupyter notebook hybrid_notebook.ipynb
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start Vite development server
+npm run dev
 ```
-
---- 
-
-Why Hybrid is Best:
-- Highest accuracy (30-40% improvement over baseline)
-- Physically interpretable results
-- Built-in fault detection
-- Better generalization to new batteries
+* Open your browser and navigate to: **`http://localhost:5173`**
 
 ---
 
-Approach Comparison
+## 🧪 Running Self-Tests & Audits
 
-| Feature | ML/DL | ECM | Hybrid |
-|---------|-------|-----|--------|
-| Interpretability | Low (Black box) | High (Physical) | High |
-| Data Requirements | Large | Moderate | Moderate |
-| Accuracy | High | Good | Highest |
-| Training Speed | Slow | Fast | Moderate |
-| Generalization | Limited | Good | Best |
-| Fault Detection | Requires labels | Built-in | Built-in |
-| Real-time Capable | Yes | Yes | Yes |
-
----
-
-Results & Performance
-
-1. Machine Learning Models (RUL Prediction)
-| Model | R² Score | MAE (cycles) | Training Time |
-|-------|----------|--------------|---------------|
-| Random Forest | 0.97 | 15.2 | Fast |
-| XGBoost | 0.98 | 12.4 | Fast |
-| Gradient Boosting | 0.96 | 17.8 | Moderate |
-
-2. Deep Learning Models (SoH Estimation)
-- Architecture: CNN + LSTM
-- Input: Voltage, current, temperature time-series
-- Output: State of Health (0-100%)
-- Performance: High accuracy with sufficient training data
-
-3. ECM Models (Voltage Prediction)
-| Model | RMSE (mV) | R² Score | Parameters |
-|-------|-----------|----------|------------|
-| Rint | 35.2 | 0.89 | R0 |
-| RC | 12.5 | 0.96 | R0, R1, C1 |
-| 2RC | 6.8 | 0.99 | R0, R1, C1, R2, C2 |
-
-4. Parameter Degradation Example (Battery B0005)
-| Parameter | Initial | Final | Change | Interpretation |
-|-----------|---------|-------|--------|----------------|
-| R0 (Ω) | 0.0452 | 0.0621 | +37.4% | Increased resistance |
-| R1 (Ω) | 0.0234 | 0.0312 | +33.3% | Slower charge transfer |
-| C1 (F) | 1523 | 1089 | -28.5% | Reduced capacity |
-| Capacity (Ah) | 1.852 | 1.523 | -17.8% | Battery degradation |
-
----
-
- Applications
-
-1. Battery Management Systems (BMS)
-Real-time monitoring and control of battery packs in electric vehicles:
-- Continuous SoH and SoC estimation
-- Predictive maintenance scheduling
-- Thermal management optimization
-- Cell balancing decisions
-
-2. Predictive Maintenance
-Anticipate battery failures before they occur:
-- RUL prediction for replacement planning
-- Early fault detection
-- Maintenance cost optimization
-- Downtime reduction
-
-3. Quality Control
-Manufacturing and testing applications:
-- Battery screening and grading
-- Performance validation
-- Warranty prediction
-- Defect detection
-
-4. Research & Development
-Battery technology advancement:
-- Degradation mechanism analysis
-- New chemistry evaluation
-- Aging model development
-- Performance benchmarking
-
----
-
-Use Cases
-
-1. Battery Management Systems (BMS)
-```python
-# Real-time SoH estimation
-ecm_model = RCModel()
-ecm_model.fit(voltage, current, soc, time)
-params = ecm_model.get_parameters()
-soh = calculate_soh_from_params(params)
-```
-
-2. Predictive Maintenance
-```python
-# Predict when battery needs replacement
-rul_model = load_trained_model('rul_model.pkl')
-cycles_remaining = rul_model.predict(current_features)
-replacement_date = estimate_replacement_date(cycles_remaining)
-```
-
-3. Fault Detection
-```python
-# Detect abnormal parameter changes
-if abs(R0_change) > threshold:
-    alert("Potential internal short circuit detected!")
-```
-
----
-
-Technical Implementation
-
-Hybrid ECM + LSTM Architecture
-
-```python
-# 1. Extract ECM parameters from battery data
-from ecm_parameter_extraction import ECMParameterExtractor
-
-extractor = ECMParameterExtractor('B0005')
-extractor.load_battery_data()
-params_df = extractor.extract_parameters_over_lifetime(model_type='RC')
-
-# 2. Combine ECM features with raw measurements
-X_ecm = params_df[['R0', 'R1', 'C1', 'tau1']].values
-X_raw = raw_measurements[['voltage', 'current', 'temperature']].values
-X_combined = np.concatenate([X_ecm, X_raw], axis=1)
-
-# 3. Train LSTM model
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
-
-model = Sequential([
-    LSTM(64, input_shape=(timesteps, features)),
-    Dense(32, activation='relu'),
-    Dense(1)  # SoH or RUL output
-])
-
-model.compile(optimizer='adam', loss='mse')
-model.fit(X_combined, y_target, epochs=50, batch_size=32)
-
-# 4. Predict and evaluate
-predictions = model.predict(X_test)
-```
-
-Benefits of Hybrid Approach:
-- Combines physical understanding with data-driven learning
-- Reduces training data requirements
-- Improves generalization to new battery types
-- Enables fault detection through ECM parameter monitoring
-
----
-
-Performance Metrics Summary
-
-Overall System Performance
-- SoH Estimation Accuracy: 95-98%
-- RUL Prediction R² Score: 0.96-0.98
-- ECM Voltage Prediction RMSE: 6.8-35.2 mV
-- Fault Detection Rate: >90%
-- Real-time Processing: <100ms per prediction
-
----
-
-References & Resources
-
-1. Machine Learning
-- Scikit-learn Documentation - [scikit-learn.org](https://scikit-learn.org)
-- TensorFlow Tutorials - [tensorflow.org/tutorials](https://www.tensorflow.org/tutorials)
-
-2. Datasets
-- NASA Prognostics Data Repository
-- Hawaii Natural Energy Institute Battery Dataset
-
----
-
-How to Get the Datasets
-
-Download from Original Sources
-- NASA Dataset: [NASA Prognostics Data Repository](https://ti.arc.nasa.gov/tech/dash/groups/pcoe/prognostic-data-repository/)
-- Hawaii Dataset: [Kaggle - Battery RUL Dataset](https://www.kaggle.com/)
-
----
-
-Dataset Setup
-
-After downloading, place datasets in the following structure:
-
-```
-project/
-├── datasets/
-│   ├── battery_data/          # NASA .mat files
-│   ├── archive/                # NASA CSV files
-│   ├── Dataset_Li-ion/         # Li-ion dataset
-│   └── rul_dataset/            # RUL dataset
-```
-
-Then run:
+### Run Full Test Suite
 ```bash
-python setup_datasets.py  # Verify dataset structure
+cd backend
+PYTHONPATH=. pytest tests/test_api.py -v
 ```
+
+### Run Live Prediction & Provenance Audit
+Verify real responses, fallback integrity on edge cases ($15\text{V}$ outliers, $0\text{A}$ rest flatlines), and database persistence:
+```bash
+cd backend
+PYTHONPATH=. python scripts/live_prediction_audit.py
+```
+
+### Run Leave-One-Battery-Out (LOBO) Benchmark
+Train and test across all NASA battery combinations from scratch:
+```bash
+cd backend
+PYTHONPATH=. python scripts/evaluate_battery_split.py
+```
+
+---
+
+## ☁️ Deployment Guidelines (Railway / Cloud)
+
+This application is ready for deployment on platforms like **Railway**, **Render**, or **Fly.io**.
+
+### Recommendations:
+* **Container Memory:** Provide at least **1 GB RAM** on the backend container to ensure TensorFlow/Keras initializes smoothly without hitting OOM limits.
+* **Environment Variables:**
+  * `PORT=8000`
+  * `ENVIRONMENT=production`
+  * `CORS_ORIGINS=*`
+* **Vite Frontend API Target:**
+  * Set `VITE_API_BASE_URL` in your frontend environment pointing to your deployed backend URL.
+
+---
+
+## 📜 Scientific References & Acknowledgments
+* **NASA Prognostics Center of Excellence (PCoE):** Battery Aging Data Set (`B0005`, `B0006`, `B0007`, `B0018`), NASA Ames Research Center.
+* **Equivalent Circuit Modeling:** Thevenin 1-RC and PNGV 2-RC Battery Equivalent Circuit Models for Li-ion cell dynamics.
+* **Machine Learning:** Long Short-Term Memory (LSTM) Networks and Extreme Gradient Boosting (XGBoost) for State Estimation in Battery Management Systems.
