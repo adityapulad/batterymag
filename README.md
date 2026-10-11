@@ -122,43 +122,74 @@ Srishtish/
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick Start Guide (Localhost Setup)
+
+Follow these steps to run both the **FastAPI Backend** and the **React Dashboard** on your local machine.
 
 ### Prerequisites
-* **Python 3.10+** (Recommended: virtual environment with TensorFlow and FastAPI)
+* **Python 3.10+**
 * **Node.js 18+** & **npm**
+* **Git**
 
-### 1. Backend Setup
+---
+
+### Step 1: Clone the Repository
+
+```bash
+git clone git@github.com:adityapulad/batterymag.git
+cd batterymag
+```
+
+---
+
+### Step 2: Start the Backend (Terminal 1)
 
 ```bash
 cd backend
 
-# Create and activate a virtual environment
+# 1. Create a virtual environment
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install dependencies
+# 2. Activate the virtual environment
+source venv/bin/activate       # On Linux / macOS
+# .\venv\Scripts\activate      # On Windows PowerShell
+
+# 3. Install backend dependencies
 pip install -r requirements.txt
 
-# Start the FastAPI backend server
+# 4. Start the FastAPI backend server
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-* Interactive Swagger API Docs will be live at: **`http://localhost:8000/docs`**
+* **Backend API:** `http://localhost:8000`
+* **Interactive Swagger Docs:** `http://localhost:8000/docs`
 
-### 2. Frontend Setup
+---
 
-In a new terminal window:
+### Step 3: Start the Frontend (Terminal 2)
+
+Open a second terminal window in the project root:
 
 ```bash
 cd frontend
 
-# Install dependencies
+# 1. Install frontend packages
 npm install
 
-# Start Vite development server
+# 2. Start the Vite development server
 npm run dev
 ```
-* Open your browser and navigate to: **`http://localhost:5173`**
+* **Frontend Dashboard:** `http://localhost:5173`
+
+---
+
+### Step 4: Verify the Application
+
+1. Open your browser and navigate to **`http://localhost:5173`**.
+2. Click **"Run Pipeline"** or select one of the battery stage presets:
+   * **Healthy B0005** (Fresh cell profile)
+   * **Moderate B0006** (Mid-life aging profile)
+   * **Degraded B0007** (Near-EOL cell profile)
+3. Confirm that the **KPI Cards** (SoH, SoC, RUL), **Dynamic Telemetry Chart**, and **ECM Parameter Breakdown** render in real-time.
 
 ---
 
